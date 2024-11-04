@@ -21,6 +21,7 @@ use crate::data::relation::{ColumnDef, NullableColType, StoredRelationMetadata};
 use crate::data::symb::Symbol;
 use crate::data::tuple::{Tuple, ENCODED_KEY_MIN_LEN};
 use crate::data::value::{DataValue, ValidityTs};
+use crate::encoder::Encoder;
 use crate::fixed_rule::utilities::constant::Constant;
 use crate::fixed_rule::FixedRuleHandle;
 use crate::fts::tokenizer::TextAnalyzer;

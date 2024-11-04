@@ -38,6 +38,7 @@ use crate::data::program::{InputProgram, QueryAssertion, RelationOp, ReturnMutat
 use crate::data::relation::ColumnDef;
 use crate::data::tuple::{Tuple, TupleT};
 use crate::data::value::{DataValue, ValidityTs, LARGEST_UTF_CHAR};
+use crate::encoder::Encoder;
 use crate::fixed_rule::DEFAULT_FIXED_RULES;
 use crate::fts::TokenizerCache;
 use crate::parse::sys::SysOp;
