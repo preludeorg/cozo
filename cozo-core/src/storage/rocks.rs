@@ -113,12 +113,16 @@ pub fn new_cozo_rocksdb(path: impl AsRef<Path>) -> Result<Db<RocksDbStorage>> {
 /// RocksDB storage engine
 #[derive(Clone)]
 pub struct RocksDbStorage {
-    db: RocksDb,
+    pub(crate) db: RocksDb,
 }
 
 impl RocksDbStorage {
     pub(crate) fn new(db: RocksDb) -> Self {
         Self { db }
+    }
+
+    pub(crate) fn ingest_sst_file(&self, path: &str) -> Result<(), cozorocks::RocksDbStatus> {
+        self.db.ingest_sst_file(path)
     }
 }
 

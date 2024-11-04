@@ -10,6 +10,7 @@ use crate::data::expr::{eval_bytecode, eval_bytecode_pred, Bytecode};
 use crate::data::program::{FtsScoreKind, FtsSearch};
 use crate::data::tuple::{decode_tuple_from_key, Tuple, ENCODED_KEY_MIN_LEN};
 use crate::data::value::LARGEST_UTF_CHAR;
+use crate::encoder::Encoder;
 use crate::fts::ast::{FtsExpr, FtsLiteral, FtsNear};
 use crate::fts::tokenizer::TextAnalyzer;
 use crate::parse::fts::parse_fts_query;

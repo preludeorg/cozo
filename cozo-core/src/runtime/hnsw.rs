@@ -11,6 +11,7 @@ use crate::data::program::HnswSearch;
 use crate::data::relation::VecElementType;
 use crate::data::tuple::{Tuple, ENCODED_KEY_MIN_LEN};
 use crate::data::value::Vector;
+use crate::encoder::Encoder;
 use crate::parse::sys::HnswDistance;
 use crate::runtime::relation::RelationHandle;
 use crate::runtime::transact::SessionTx;

@@ -10,6 +10,7 @@
 
 use crate::data::expr::{eval_bytecode, eval_bytecode_pred, Bytecode};
 use crate::data::tuple::Tuple;
+use crate::encoder::Encoder;
 use crate::fts::tokenizer::TextAnalyzer;
 use crate::fts::TokenizerConfig;
 use crate::runtime::relation::RelationHandle;

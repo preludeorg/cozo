@@ -24,6 +24,7 @@ use crate::data::relation::{ColType, ColumnDef, NullableColType, StoredRelationM
 use crate::data::symb::Symbol;
 use crate::data::tuple::{decode_tuple_from_key, Tuple, TupleT, ENCODED_KEY_MIN_LEN};
 use crate::data::value::{DataValue, ValidityTs};
+use crate::encoder::Encoder;
 use crate::fts::FtsIndexManifest;
 use crate::parse::expr::build_expr;
 use crate::parse::sys::{FtsIndexConfig, HnswIndexConfig, MinHashLshConfig};
@@ -272,19 +273,6 @@ impl RelationHandle {
         }
         ret
     }
-    pub(crate) fn encode_val_for_store(
-        &self,
-        tuple: &[DataValue],
-        _span: SourceSpan,
-    ) -> Result<Vec<u8>> {
-        let start = self.metadata.keys.len();
-        let len = self.metadata.non_keys.len();
-        let mut ret = self.encode_key_prefix(len);
-        tuple[start..]
-            .serialize(&mut Serializer::new(&mut ret))
-            .unwrap();
-        Ok(ret)
-    }
     pub(crate) fn encode_val_only_for_store(
         &self,
         tuple: &[DataValue],
@@ -314,6 +302,44 @@ impl RelationHandle {
             }
         }
         Ok(())
+    }
+}
+
+impl Encoder for RelationHandle {
+    fn encode_key_for_store(
+        &self,
+        tuple: &[DataValue],
+        span: SourceSpan,
+    ) -> Result<Vec<u8>> {
+        let len = self.metadata.keys.len();
+        ensure!(
+            tuple.len() >= len,
+            StoredRelArityMismatch {
+                name: self.name.to_string(),
+                expect_arity: self.arity(),
+                actual_arity: tuple.len(),
+                span
+            }
+        );
+        let mut ret = self.encode_key_prefix(len);
+        for val in &tuple[0..len] {
+            ret.encode_datavalue(val);
+        }
+        Ok(ret)
+    }
+
+    fn encode_val_for_store(
+        &self,
+        tuple: &[DataValue],
+        _span: SourceSpan,
+    ) -> Result<Vec<u8>> {
+        let start = self.metadata.keys.len();
+        let len = self.metadata.non_keys.len();
+        let mut ret = self.encode_key_prefix(len);
+        tuple[start..]
+            .serialize(&mut Serializer::new(&mut ret))
+            .unwrap();
+        Ok(ret)
     }
 }
 

@@ -84,7 +84,12 @@ pub use crate::runtime::db::Poison;
 pub use crate::runtime::db::ScriptMutability;
 pub use crate::runtime::db::TransactionPayload;
 
+<<<<<<< HEAD
 pub mod data;
+=======
+pub(crate) mod data;
+pub mod encoder;
+>>>>>>> 0dc50fc3 (Make encoder and bulk writer for rocksdb accessible)
 pub(crate) mod fixed_rule;
 pub(crate) mod fts;
 pub mod parse;
@@ -292,6 +297,36 @@ impl DbInstance {
             },
         )
         .to_string()
+    }
+    /// Get key/value encoder for relation.
+    pub fn get_encoder(&self, name: &str) -> Result<Box<dyn encoder::Encoder>> {
+        match self {
+            DbInstance::Mem(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
+            #[cfg(feature = "storage-sqlite")]
+            DbInstance::Sqlite(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
+            #[cfg(feature = "storage-rocksdb")]
+            DbInstance::RocksDb(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
+            #[cfg(feature = "storage-sled")]
+            DbInstance::Sled(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
+            #[cfg(feature = "storage-tikv")]
+            DbInstance::TiKv(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
+        }
+    }
+    /// Efficiently bulk write a larget set of key-value pairs.
+    #[cfg(feature = "storage-rocksdb")]
+    pub fn bulk_write(&self, kv_iter: impl IntoIterator<Item = (Vec<u8>, Vec<u8>)>) -> Result<()> {
+        match self {
+            DbInstance::RocksDb(db) => {
+                let mut sst_file_writer = db.db.db.get_sst_writer("./tmp_sst")?;
+                for (k, v) in kv_iter {
+                    sst_file_writer.put(&k, &v).unwrap_or_else(|e| println!("error writing to sst file: {:?}", e));
+                }
+                sst_file_writer.finish().unwrap_or_else(|e| println!("error finishing sst file: {:?}", e));
+                db.db.ingest_sst_file("./tmp_sst").unwrap_or_else(|e| println!("error ingesting sst file: {:?}", e));
+                Ok(())
+            },
+            _ => panic!("bulk_write not supported for this storage engine"),
+        }
     }
     /// Dispatcher method. See [crate::Db::export_relations].
     pub fn export_relations<I, T>(&self, relations: I) -> Result<BTreeMap<String, NamedRows>>
