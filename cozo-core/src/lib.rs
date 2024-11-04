@@ -314,7 +314,7 @@ impl DbInstance {
     }
     /// Efficiently bulk write a larget set of key-value pairs.
     #[cfg(feature = "storage-rocksdb")]
-    pub fn bulk_write(&self, kv_iter: impl IntoIterator<Item = (Vec<u8>, Vec<u8>)>) -> Result<()> {
+    pub fn bulk_write<'a>(&self, kv_iter: impl Iterator<Item = (&'a Vec<u8>, &'a Vec<u8>)>) -> Result<()> {
         match self {
             DbInstance::RocksDb(db) => {
                 let mut sst_file_writer = db.db.db.get_sst_writer("./tmp_sst")?;
