@@ -33,6 +33,7 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
+use std::path::PathBuf;
 #[allow(unused_imports)]
 use std::time::Instant;
 
@@ -267,12 +268,14 @@ impl DbInstance {
     pub fn bulk_write<'a>(&self, kv_iter: impl Iterator<Item = (&'a Vec<u8>, &'a Vec<u8>)>) -> Result<()> {
         match self {
             DbInstance::RocksDb(db) => {
-                let mut sst_file_writer = db.db.db.get_sst_writer("./tmp_sst")?;
+                let path_buffer = [db.db.db.db_path(), String::from("tmp_sst")].iter().collect::<PathBuf>();
+                let sst_path: &str = path_buffer.to_str().unwrap_or("tmp_sst");
+                let mut sst_file_writer = db.db.db.get_sst_writer(sst_path)?;
                 for (k, v) in kv_iter {
                     sst_file_writer.put(&k, &v).unwrap_or_else(|e| println!("error writing to sst file: {:?}", e));
                 }
                 sst_file_writer.finish().unwrap_or_else(|e| println!("error finishing sst file: {:?}", e));
-                db.db.ingest_sst_file("./tmp_sst").unwrap_or_else(|e| println!("error ingesting sst file: {:?}", e));
+                db.db.ingest_sst_file(sst_path).unwrap_or_else(|e| println!("error ingesting sst file: {:?}", e));
                 Ok(())
             },
             _ => panic!("bulk_write not supported for this storage engine"),
