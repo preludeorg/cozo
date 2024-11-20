@@ -303,6 +303,8 @@ impl DbInstance {
             DbInstance::Sqlite(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
             #[cfg(feature = "storage-rocksdb")]
             DbInstance::RocksDb(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
+            #[cfg(feature = "storage-new-rocksdb")]
+            DbInstance::NewRocksDb(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
             #[cfg(feature = "storage-sled")]
             DbInstance::Sled(db) => Ok(Box::new(db.transact_write()?.get_relation(name, false)?)),
             #[cfg(feature = "storage-tikv")]
@@ -310,18 +312,26 @@ impl DbInstance {
         }
     }
     /// Efficiently bulk write a larget set of key-value pairs.
-    #[cfg(feature = "storage-rocksdb")]
-    pub fn bulk_write<'a>(&self, kv_iter: impl Iterator<Item = (&'a Vec<u8>, &'a Vec<u8>)>) -> Result<()> {
+    #[cfg(any(feature = "storage-rocksdb", feature = "storage-new-rocksdb"))]
+    pub fn bulk_write(&self, kv_iter: Box<dyn Iterator<Item = Result<(Vec<u8>, Vec<u8>)>>>) -> Result<()> {
         match self {
+            #[cfg(any(feature = "storage-rocksdb"))]
             DbInstance::RocksDb(db) => {
                 let path_buffer = [db.db.db.db_path(), String::from("tmp_sst")].iter().collect::<PathBuf>();
                 let sst_path: &str = path_buffer.to_str().unwrap_or("tmp_sst");
                 let mut sst_file_writer = db.db.db.get_sst_writer(sst_path)?;
-                for (k, v) in kv_iter {
-                    sst_file_writer.put(&k, &v).unwrap_or_else(|e| println!("error writing to sst file: {:?}", e));
+                for item in kv_iter {
+                    if let Ok((k, v)) = item {
+                        sst_file_writer.put(&k, &v)?;
+                    }
                 }
-                sst_file_writer.finish().unwrap_or_else(|e| println!("error finishing sst file: {:?}", e));
-                db.db.ingest_sst_file(sst_path).unwrap_or_else(|e| println!("error ingesting sst file: {:?}", e));
+                sst_file_writer.finish()?;
+                db.db.ingest_sst_file(sst_path)?;
+                Ok(())
+            },
+            #[cfg(any(feature = "storage-new-rocksdb"))]
+            DbInstance::NewRocksDb(db) => {
+                db.db.batch_put(kv_iter)?;
                 Ok(())
             },
             _ => panic!("bulk_write not supported for this storage engine"),
