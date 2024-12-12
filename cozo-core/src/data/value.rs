@@ -692,3 +692,18 @@ impl DataValue {
 }
 
 pub(crate) const LARGEST_UTF_CHAR: char = '\u{10ffff}';
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_optional_datavalue() {
+        let v: Option<i64> = Some(42);
+        let dv: DataValue = v.into();
+        assert_eq!(dv, DataValue::Num(Num::Int(42)));
+        let v: Option<i64> = None;
+        let dv: DataValue = v.into();
+        assert_eq!(dv, DataValue::Null);
+    }
+}
